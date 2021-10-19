@@ -4,13 +4,12 @@
 package CSTool;
 
 import java.io.File;
-import java.io.IOException;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.sql.SQLException;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Scanner;
-import java.util.Set;
 import java.util.Vector;
 
 import org.slf4j.Logger;
@@ -18,8 +17,8 @@ import org.slf4j.LoggerFactory;
 
 import CSTool.data.Parser;
 import CSTool.data.SaveEntry;
-import CSTool.model.FileEvent;
 import CSTool.model.DBEventEntry;
+import CSTool.model.FileEvent;
 
 public class App {
 	private static final Logger LOGGER = 
@@ -33,19 +32,10 @@ public class App {
         System.out.println(new App().welcome());
         Scanner scanner =  new Scanner(System.in);
         String path = scanner.next();
-        
-        File file = checkFileExists(path);
-        if (!file.isFile()) {
-        	LOGGER.error("File not found "+path);
-        	return;
-        }
-        
-        LOGGER.info("File found! "+path);
-        
         try {
+        	FileInputStream file = checkFileExists(path);
+        
         	Parser parser = new Parser(file);
-        	
-        	Set<String> indexes = new HashSet<String>();
         	
         	Vector<FileEvent> eventi = parser.getEventi();
         	
@@ -53,12 +43,16 @@ public class App {
         	
         	/**
         	 * Event is equal if id, host, type are equals
+        	 * 
+        	 * Here I would introduce multithreading.
+        	 * 		Limit the hashmap to a configurable limit
+        	 * 		If the matches.values entries reach than this limit,
+        	 * 		create a new instance of the matches hashmap, pass each matches to different thread(s) doing findMatchesAndSave method
         	 */
         	for (int i = 0; i < eventi.size(); i++) {
         		FileEvent event = eventi.get(i);
         		
-        		if (!indexes.contains(event.getId())) {
-        			indexes.add(event.getId());
+        		if (!matches.keySet().contains(event)) {
         			matches.put(event, null);
         		} else {
         			matches.put(event, event);
@@ -78,19 +72,11 @@ public class App {
         
     }
     
-    private static File checkFileExists(String path) {
-    	File file = null;
-    	try {
-    		file = new File(path);
-    		if (file.isFile()) {
-    			return file;
-    		}
-    		
-    	}catch(Exception fnf) {
-    		System.out.println("error");
-    	}
+    private static FileInputStream checkFileExists(String path) throws FileNotFoundException {
+    	FileInputStream fi = null;
+    	fi = new FileInputStream(path);
+    	return fi;
     	
-    	return file;
     }
     
     private static void findMatchesAndSave(Map<FileEvent, FileEvent> matches) {
